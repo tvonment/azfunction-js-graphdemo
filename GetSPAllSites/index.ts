@@ -5,9 +5,6 @@ import qs = require('qs');
 const APP_ID = process.env["APP_ID"];
 const APP_SECRET = process.env["APP_SECRET"];
 const TENANT_ID = process.env["TENANT_ID"];
-const SITE_ID = process.env["SITE_ID"];
-const LIST_ID = process.env["LIST_ID"];
-
 
 const TOKEN_ENDPOINT = 'https://login.microsoftonline.com/' + TENANT_ID + '/oauth2/v2.0/token';
 const MS_GRAPH_SCOPE = 'https://graph.microsoft.com/.default';
@@ -23,12 +20,12 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     // Get Token for MS Graph
     let token = await getToken();
 
-    let listitems = await getSPListItems(token);
+    let sites = await getSPSites(token);
 
     let returnValue = "";
 
-    for(let item of listitems) {
-        returnValue += item.fields.Title + " - " + item.fields.DemoText + "\n"
+    for(let site of sites) {
+        returnValue += site.displayName + "\n"
     }
 
     context.res = {
@@ -65,16 +62,14 @@ async function getToken(): Promise<string> {
  * Get SP Sites
  * @param token Token to authenticate through MS Graph
  */
-async function getSPListItems(token:string): Promise<ListItem[]> {
+async function getSPSites(token:string): Promise<Site[]> {
     let config: AxiosRequestConfig = {
         method: 'get',
-        url: MS_GRAPH_ENDPOINT + 'sites/' + SITE_ID + '/lists/' + LIST_ID + '/items?expand=fields',
+        url: MS_GRAPH_ENDPOINT + 'sites',
         headers: {
           'Authorization': 'Bearer ' + token //the token is a variable which holds the token
         }
     }
-
-    console.log(MS_GRAPH_ENDPOINT + 'sites/' + SITE_ID + '/lists/' + LIST_ID + '/items?expand=fields');
     
     return await axios(config)
         .then(response => {
@@ -86,47 +81,17 @@ async function getSPListItems(token:string): Promise<ListItem[]> {
         });
 }
 
-class ListItem {
-    createdDateTime:        Date;
-    eTag:                   string;
-    id:                     string;
-    lastModifiedDateTime:   Date;
-    webUrl:                 string;
-    createdBy:              UserObject;
-    lastModifiedBy:         UserObject;
-    parentReference:        ParentReference;
-    contentType:            ContentType;
-    "fields@odata.context": string;
-    fields:                 Fields;
+
+class Site {
+    createdDateTime:      Date;
+    id:                   string;
+    lastModifiedDateTime: Date;
+    name:                 string;
+    webUrl:               string;
+    displayName:          string;
+    siteCollection:       SiteCollection;
 }
 
-class ContentType {
-    id:   string;
-    name: string;
-}
-
-class UserObject {
-    user: User;
-}
-
-class User {
-    email:       string;
-    id:          string;
-    displayName: string;
-}
-
-class Fields {
-    "@odata.etag":             string;
-    id:                        string;
-    ContentType:               string;
-    Title:                     string;
-    Modified:                  Date;
-    Created:                   Date;
-    AuthorLookupId:            string;
-    EditorLookupId:            string;
-    DemoText:                  string;
-}
-
-class ParentReference {
-    siteId: string;
+class SiteCollection {
+    hostname: string;
 }
